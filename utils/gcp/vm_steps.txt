@@ -1,0 +1,33 @@
+<< LOCAL >>
+
+Close any existing VM windows and terminals
+
+# Open Terminal 1
+python -m utils.gcp.connect
+
+<< VM >>
+
+sudo pkill -f python
+htop
+cd ..
+sudo rm -rf gauges_experiment
+Close any existing VM windows and terminals
+
+<< LOCAL >>
+
+# Open Terminal 1
+python -m utils.gcp.push_code
+python -m utils.gcp.view
+
+# Open Terminal 2
+python -m utils.gcp.view
+
+# Open Terminal 3
+python -m utils.gcp.connect
+
+<< VM >>
+
+cd gauges_experiment
+ls
+./launch_parallel.sh
+htop
