@@ -17,14 +17,10 @@ def render_table():
     df = pd.read_csv(CSV_PATH)
     
     # 1. Clean up Index (Gauge Types)
-    # They should already be cleaned by plot_story, but just in case
-    # Assuming CSV first col is 'gauge_type'
     if 'gauge_type' in df.columns:
         df.set_index('gauge_type', inplace=True)
     
     # 2. Construct display strings "Mean ± Std"
-    # Columns expected: Pre_Mean, Pre_Std, S1_Mean, S1_Std, ...
-    
     phases = [
         ("Pretrain", "Pre"),
         ("Stage 1 (Rot)", "S1"),

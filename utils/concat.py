@@ -27,7 +27,6 @@ IGNORE_FILES = [
 ]
 
 # Files/Dirs to show in Tree, but EXCLUDE content from Markdown
-# (Add 'utils' here if you want to see the folder but hide code)
 EXCLUDE_CONTENT_PATTERNS = [
     'concat.py',
     'clean.py',

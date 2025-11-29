@@ -64,7 +64,6 @@ def push_code():
     # 3. Unzip, Install, Fix Permissions
     print("📂 Unzipping and installing requirements...")
     
-    # THE FIX: Added --break-system-packages to the pip install command
     install_cmd = (
         f"sudo unzip -o {zip_filename} -d {REMOTE_DIR} && "
         f"sudo chown -R $USER:$USER {REMOTE_DIR} && "

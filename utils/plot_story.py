@@ -69,7 +69,6 @@ def load_all_data():
     for f in sum_files:
         summ = pd.read_csv(f)
         
-        # --- ROBUST BACKFILL for Missing Recovery Scores ---
         if 'rec_rot' not in summ.columns:
             run_name = os.path.basename(f).replace("mirrors_summary_", "").replace(".csv", "")
             hall_csv = os.path.join(MIRRORS_DATA_DIR, f"{run_name}_hall_progress.csv")

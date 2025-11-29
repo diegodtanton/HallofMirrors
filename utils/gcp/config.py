@@ -5,8 +5,8 @@ import os
 # ====================================================
 
 VM_NAME = "mirrors-experiment-01"
-ZONE = "us-central1-f"  # Ensure this matches your VM's zone
-REMOTE_DIR = "gauges_experiment" # Where code lives on the VM
+ZONE = "us-central1-f"
+REMOTE_DIR = "gauges_experiment"
 
 # Local folder where we save downloaded results
 LOCAL_RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "downloaded_results")
