@@ -24,6 +24,9 @@ analysis_results/
 */data/*.csv
 */checkpoints/
 
+# Concatenated
+*/concat.md
+
 # But keep example/template files if needed
 !**/data/.gitkeep
 !**/checkpoints/.gitkeep

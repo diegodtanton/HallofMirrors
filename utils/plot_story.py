@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from matplotlib.colors import Normalize, LinearSegmentedColormap
 
 from shared.config import PRETRAIN_DATA_DIR, MIRRORS_DATA_DIR, PRETRAIN_TARGET_RETURN
 
@@ -69,7 +70,6 @@ def load_all_data():
         summ = pd.read_csv(f)
         
         # --- ROBUST BACKFILL for Missing Recovery Scores ---
-        # If the CSV is old and missing columns, calculate them now.
         if 'rec_rot' not in summ.columns:
             run_name = os.path.basename(f).replace("mirrors_summary_", "").replace(".csv", "")
             hall_csv = os.path.join(MIRRORS_DATA_DIR, f"{run_name}_hall_progress.csv")
@@ -81,8 +81,6 @@ def load_all_data():
                 try:
                     hall_df = pd.read_csv(hall_csv)
                     if not hall_df.empty:
-                        # Heuristic: Split hall steps into 3 chunks
-                        # Assuming 6M total steps, ordered sequentially
                         total = len(hall_df)
                         chunk = total // 3
                         
@@ -90,7 +88,7 @@ def load_all_data():
                         rec_step = hall_df.iloc[chunk:2*chunk]['rolling_return'].max()
                         rec_val = hall_df.iloc[2*chunk:]['rolling_return'].max()
                 except:
-                    pass # Keep defaults
+                    pass 
             
             summ['rec_rot'] = rec_rot
             summ['rec_step'] = rec_step
@@ -100,7 +98,6 @@ def load_all_data():
         
     df_perf = pd.concat(df_sum_list, ignore_index=True) if df_sum_list else pd.DataFrame()
 
-    # Ensure columns exist globally even if all are 0 (prevents KeyErrors)
     for col in ['rec_rot', 'rec_step', 'rec_val']:
         if col not in df_perf.columns:
             df_perf[col] = 0.0
@@ -113,46 +110,45 @@ def load_all_data():
 
     return df_pre, df_stage, df_perf
 
-def plot_fig1_baseline(df_pre):
+def plot_fig2_baseline(df_pre):
     plt.figure(figsize=(11, 7))
     order = [GAUGE_LABELS["dist_to_wall"], GAUGE_LABELS["nuisance"], 
              GAUGE_LABELS["rotation"], GAUGE_LABELS["step_size"], GAUGE_LABELS["reward_map"]]
     
     sns.boxplot(data=df_pre, x="gauge_type", y="gauge_score", order=order, color="white", showfliers=False, zorder=1)
     
-    # Use scatter with continuous colormap
-    from matplotlib.colors import Normalize
+    # Custom Colormap: Orange -> Red -> Purple
+    cmap_custom = LinearSegmentedColormap.from_list("orange_red_purple", ["orange", "red", "purple"])
     
     # Map hidden_size to colors using linear scale
     norm = Normalize(vmin=df_pre['hidden_size'].min(), vmax=df_pre['hidden_size'].max())
     
-    # Create scatter plot with jitter - higher zorder puts it on top
+    # Create scatter plot with jitter
     for i, gauge in enumerate(order):
         data = df_pre[df_pre['gauge_type'] == gauge]
         x = np.random.normal(i, 0.04, size=len(data))  # jitter
         scatter = plt.scatter(x, data['gauge_score'], 
                             c=data['hidden_size'], 
-                            cmap='viridis', 
+                            cmap=cmap_custom, 
                             norm=norm,
                             s=80, 
                             alpha=0.8,
                             edgecolors='none',
-                            zorder=2)  # Put dots on top
+                            zorder=2)
     
     # Add colorbar
     cbar = plt.colorbar(scatter, ax=plt.gca())
     cbar.set_label('Hidden Size', fontsize=12)
     
-    plt.title("Figure 1: Baseline Gauge Identification (Pre-Adaptation)", fontsize=14)
+    plt.title("Figure 2: Baseline Gauge Identification (Pre-Adaptation)", fontsize=14)
     plt.ylabel("Gauge Score", fontsize=12)
     plt.xlabel("Feature Type", fontsize=12)
     plt.grid(axis='y', linestyle='--', alpha=0.3)
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, "fig1_baseline_identification.png"), dpi=300)
+    plt.savefig(os.path.join(OUTPUT_DIR, "fig2_baseline_identification.png"), dpi=300)
     plt.close()
 
-def plot_fig2_performance(hs, nl):
-    # FIX: No manual offset addition. Trust the step counters.
+def plot_fig3_performance(hs, nl):
     run_name = f"hs{hs}_l{nl}"
     
     pre_path = os.path.join(PRETRAIN_DATA_DIR, f"{run_name}_progress.csv")
@@ -167,51 +163,51 @@ def plot_fig2_performance(hs, nl):
     df_grace = pd.read_csv(grace_path)
     df_hall = pd.read_csv(hall_path)
     
-    # Concatenate directly. 
-    # Assumption: The agent saved the step count, so df_grace['step'] starts where pre left off.
     df_full = pd.concat([df_pre, df_grace, df_hall], ignore_index=True)
     
     plt.figure(figsize=(12, 5))
     plt.plot(df_full['step'], df_full['rolling_return'], color='black', linewidth=1.5, zorder=10)
     
-    # Calculate span boundaries using min/max of the actual data
+    # Calculate span boundaries
     pre_min, pre_max = df_pre['step'].min(), df_pre['step'].max()
     grace_min, grace_max = df_grace['step'].min(), df_grace['step'].max()
     hall_min, hall_max = df_hall['step'].min(), df_hall['step'].max()
 
-    plt.axvspan(pre_min, pre_max, color='green', alpha=0.1, label='Pretrain')
+    # Colors: Purple -> Orange -> Red
+    plt.axvspan(pre_min, pre_max, color='purple', alpha=0.1, label='Pretrain')
     plt.axvspan(grace_min, grace_max, color='orange', alpha=0.2, label='Grace')
     plt.axvspan(hall_min, hall_max, color='red', alpha=0.1, label='Hall of Mirrors')
     
-    plt.title(f"Figure 2: Adaptation Profile (Agent: Hidden {hs}, Layers {nl})", fontsize=14)
+    plt.title(f"Figure 3: Adaptation Profile (Agent: Hidden {hs}, Layers {nl})", fontsize=14)
     plt.xlabel("Total Environment Steps", fontsize=12)
     plt.ylabel("Rolling Return", fontsize=12)
     plt.legend(loc='lower right')
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, f"fig2_performance_hs{hs}_l{nl}.png"), dpi=300)
+    plt.savefig(os.path.join(OUTPUT_DIR, f"fig3_performance_hs{hs}_l{nl}.png"), dpi=300)
     plt.close()
 
-def plot_fig3_grid(df_pre, df_stage, df_perf):
+def plot_fig4_grid(df_pre, df_stage, df_perf):
     if df_perf.empty: return
 
     fig, axes = plt.subplots(3, 2, figsize=(14, 14))
     
-    # (Raw Key for performance, Stage Name, Performance Col, Clean Name for Gauge)
     features = [
         ("rotation", "stage_1_rot", "rec_rot", "Rotation"),
         ("step_size", "stage_2_step", "rec_step", "Step Size"),
         ("reward_map", "stage_3_val", "rec_val", "Reward Map")
     ]
     
+    # Custom Palette for Layers: 1=Orange, 2=Red, 3=Purple
+    layer_palette = {1: "orange", 2: "red", 3: "purple"}
+
     for i, (raw_gauge, stage_name, rec_col, clean_name) in enumerate(features):
         # --- LEFT: Performance ---
-        # Calculate % Recovery
         df_perf['recovery_pct'] = df_perf[rec_col] / PRETRAIN_TARGET_RETURN
         
         ax_perf = axes[i, 0]
         sns.lineplot(data=df_perf, x="hidden_size", y="recovery_pct", hue="layers", 
-                    palette="tab10", marker="o", ax=ax_perf)
+                    palette=layer_palette, marker="o", ax=ax_perf)
         ax_perf.set_title(f"Max Performance Recovery ({clean_name})", fontsize=12)
         ax_perf.set_ylim(0, 1.2)
         ax_perf.set_ylabel("% of Baseline")
@@ -235,7 +231,7 @@ def plot_fig3_grid(df_pre, df_stage, df_perf):
             
             ax_reif = axes[i, 1]
             sns.lineplot(data=merged, x="hidden_size", y="reification", hue="layers",
-                        palette="tab10", marker="o", ax=ax_reif)
+                        palette=layer_palette, marker="o", ax=ax_reif)
             ax_reif.set_title(f"Gauge Reification ({clean_name})", fontsize=12)
             ax_reif.set_ylabel("Reification Score")
             ax_reif.set_xlabel("Hidden Size")
@@ -244,7 +240,7 @@ def plot_fig3_grid(df_pre, df_stage, df_perf):
             ax_reif.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, "fig3_grid.png"), dpi=300)
+    plt.savefig(os.path.join(OUTPUT_DIR, "fig4_grid.png"), dpi=300)
     plt.close()
 
 def generate_table_data(df_pre, df_stage):
@@ -277,17 +273,16 @@ def main():
     print("Loading Data...")
     df_pre, df_stage, df_perf = load_all_data()
     
-    print("Generating Figure 1...")
-    if not df_pre.empty:
-        plot_fig1_baseline(df_pre)
-    
     print("Generating Figure 2...")
-    # Try to find a valid run for Fig 2. Fallback to first available if 64_2 missing.
-    target_hs, target_nl = 64, 2
-    plot_fig2_performance(target_hs, target_nl)
+    if not df_pre.empty:
+        plot_fig2_baseline(df_pre)
     
     print("Generating Figure 3...")
-    plot_fig3_grid(df_pre, df_stage, df_perf)
+    target_hs, target_nl = 64, 2
+    plot_fig3_performance(target_hs, target_nl)
+    
+    print("Generating Figure 4...")
+    plot_fig4_grid(df_pre, df_stage, df_perf)
     
     print("Generating Table Data...")
     generate_table_data(df_pre, df_stage)
