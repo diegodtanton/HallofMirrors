@@ -23,7 +23,9 @@ IGNORE_DIRS = [
 # Files to ignore (not in tree, not in content)
 IGNORE_FILES = [
     '.DS_Store',
-    'mirrors_project.zip'
+    'mirrors_project.zip',
+    '.csv',
+    '.pt'
 ]
 
 # Files/Dirs to show in Tree, but EXCLUDE content from Markdown
@@ -35,7 +37,6 @@ EXCLUDE_CONTENT_PATTERNS = [
     'gauge_analysis',  # CSVs
     '.png',
     '.jpg',
-    '.pt'              # Checkpoints
 ]
 
 # Readable extensions for content inclusion

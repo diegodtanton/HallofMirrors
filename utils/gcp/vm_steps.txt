@@ -1,6 +1,11 @@
+<< GCP >>
+
+Spin up / unpause VM
+
 << LOCAL >>
 
 Close any existing VM windows and terminals
+Update shared/config.py file
 
 # Open Terminal 1
 python -m utils.gcp.connect
@@ -31,3 +36,12 @@ cd gauges_experiment
 ls
 ./launch_parallel.sh
 htop
+
+<< LOCAL >>
+
+python -m utils.gcp.pull_data
+
+# Change shared/config.py file to new downloaded_data path
+
+python -m mirrors.gauges
+python -m utils.plot_story

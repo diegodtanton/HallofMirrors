@@ -49,14 +49,15 @@ STAGE_BUDGET = 2_000_000 # Change for mock
 # Paths
 # --------------------------
 
-# Specific downloaded results
-DOWNLOAD_ROOT = os.path.join("downloaded_results", "2025-11-28_23-01-05")
+# Uncomment for analysis
+DOWNLOADED_DATA = "2025-12-09_09-59-37"
+DOWNLOAD_ROOT = os.path.join("downloaded_results", DOWNLOADED_DATA)
 PRETRAIN_CHECKPOINT_DIR = os.path.join(DOWNLOAD_ROOT, "pretrain", "checkpoints")
 PRETRAIN_DATA_DIR = os.path.join(DOWNLOAD_ROOT, "pretrain", "data")
 MIRRORS_CHECKPOINT_DIR = os.path.join(DOWNLOAD_ROOT, "mirrors", "checkpoints")
 MIRRORS_DATA_DIR = os.path.join(DOWNLOAD_ROOT, "mirrors", "data")
 
-# Create new results
+# Uncommment for new experiment
 # PRETRAIN_CHECKPOINT_DIR = os.path.join("pretrain", "checkpoints")
 # PRETRAIN_DATA_DIR = os.path.join("pretrain", "data")
 # MIRRORS_CHECKPOINT_DIR = os.path.join("mirrors", "checkpoints")

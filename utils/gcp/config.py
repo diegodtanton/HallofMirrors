@@ -23,7 +23,8 @@ IGNORE_PATTERNS = [
     "env",
     "logs",
     "downloaded_results",
+    "analysis_results",
     "deploy.zip",
     "*.DS_Store",
-    "utils/gcp"
+    "utils"
 ]
