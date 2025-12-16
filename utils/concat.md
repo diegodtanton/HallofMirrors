@@ -4,6 +4,7 @@
 Project Structure:
 =================
 ├── .gitignore
+├── Gauges.pdf
 ├── README.md
 ├── downloaded_results
 │   ├── 2025-11-28_23-01-05
@@ -4304,7 +4305,6 @@ def plot_fig2_main(df_pre):
     for i, gauge in enumerate(order):
         data = df_pre[df_pre['gauge_type'] == gauge]
         if len(data) > 2:
-            # CHANGED: Correlation between layers and gauge_score
             corr, p_val = stats.spearmanr(data['layers'], data['gauge_score'])
             
             if p_val < 0.001: p_str = "p < 0.001"
@@ -4356,12 +4356,13 @@ def plot_fig2_supp(df_pre):
     plt.close()
 
 # ========================================================
-# Figure 4: Grid (Error Bars instead of Bands)
+# Figure 4A: Performance Stack (3 Rows, 1 Column)
 # ========================================================
-def plot_fig4_grid(df_pre, df_stage, df_perf):
+def plot_performance_stack(df_perf):
     if df_perf.empty: return
 
-    fig, axes = plt.subplots(3, 2, figsize=(14, 14))
+    # Taller figsize to accommodate 3 vertical plots
+    fig, axes = plt.subplots(3, 1, figsize=(8, 14))
     
     features = [
         ("rotation", "stage_1_rot", "rec_rot", "Rotation"),
@@ -4370,32 +4371,48 @@ def plot_fig4_grid(df_pre, df_stage, df_perf):
     ]
     
     for i, (raw_gauge, stage_name, rec_col, clean_name) in enumerate(features):
-        
-        # --- LEFT: Performance ---
         df_perf['recovery_pct'] = df_perf[rec_col] / PRETRAIN_TARGET_RETURN
         p_val_perf = calculate_significance(df_perf, 'hidden_size', 'recovery_pct', 'layers')
 
-        ax_perf = axes[i, 0]
+        ax = axes[i]
         sns.lineplot(data=df_perf, x="hidden_size", y="recovery_pct", hue="layers", 
                      palette=LAYER_PALETTE, marker="o", 
                      errorbar='sd', err_style='bars', err_kws={'capsize': 5}, 
-                     ax=ax_perf)
+                     ax=ax)
         
-        ax_perf.set_title(f"Max Performance Recovery ({clean_name}) | {p_val_perf}", fontsize=11)
-        ax_perf.set_ylim(0, 1.2)
-        ax_perf.set_ylabel("% of Baseline")
-        ax_perf.set_xlabel("Hidden Size")
-        ax_perf.legend(title="Layers", loc='upper right')
-        ax_perf.grid(True, alpha=0.3)
-        
-        # --- RIGHT: Reification ---
-        if df_stage.empty or df_pre.empty: continue
+        ax.set_title(f"Max Performance Recovery ({clean_name}) | {p_val_perf}", fontsize=12)
+        ax.set_ylim(0, 1.2)
+        ax.set_ylabel("% of Baseline")
+        ax.set_xlabel("Hidden Size" if i == 2 else "") # Only label bottom axis
+        ax.legend(title="Layers", loc='lower right')
+        ax.grid(True, alpha=0.3)
 
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, "fig4_performance_stack.png"), dpi=300)
+    plt.close()
+
+# ========================================================
+# Figure 4B: Reification Stack (3 Rows, 1 Column)
+# ========================================================
+def plot_reification_stack(df_pre, df_stage):
+    if df_stage.empty or df_pre.empty: return
+
+    fig, axes = plt.subplots(3, 1, figsize=(12, 14))
+    
+    features = [
+        ("rotation", "stage_1_rot", "rec_rot", "Rotation"),
+        ("step_size", "stage_2_step", "rec_step", "Step Size"),
+        ("reward_map", "stage_3_val", "rec_val", "Reward Map")
+    ]
+    
+    for i, (raw_gauge, stage_name, rec_col, clean_name) in enumerate(features):
         d_pre = df_pre[df_pre['gauge_type'] == clean_name][['hidden_size', 'layers', 'run_id', 'gauge_score']]
         d_post = df_stage[
             (df_stage['gauge_type'] == clean_name) & 
             (df_stage['stage'] == stage_name)
         ][['hidden_size', 'layers', 'run_id', 'gauge_score']]
+        
+        ax = axes[i]
         
         if not d_pre.empty and not d_post.empty:
             merged = pd.merge(d_pre, d_post, on=['hidden_size', 'layers', 'run_id'], suffixes=('_pre', '_post'))
@@ -4403,21 +4420,22 @@ def plot_fig4_grid(df_pre, df_stage, df_perf):
             
             p_val_reif = calculate_significance(merged, 'hidden_size', 'reification', 'layers')
 
-            ax_reif = axes[i, 1]
             sns.lineplot(data=merged, x="hidden_size", y="reification", hue="layers",
                          palette=LAYER_PALETTE, marker="o", 
                          errorbar='sd', err_style='bars', err_kws={'capsize': 5},
-                         ax=ax_reif)
+                         ax=ax)
             
-            ax_reif.set_title(f"Gauge Reification ({clean_name}) | {p_val_reif}", fontsize=11)
-            ax_reif.set_ylabel("Reification Score")
-            ax_reif.set_xlabel("Hidden Size")
-            ax_reif.legend(title="Layers", loc='upper left')
-            ax_reif.axhline(0, color='black', linewidth=0.5, linestyle='--')
-            ax_reif.grid(True, alpha=0.3)
+            ax.set_title(f"Gauge Reification ({clean_name}) | {p_val_reif}", fontsize=12)
+            ax.set_ylabel("Reification Score")
+            ax.set_xlabel("Hidden Size" if i == 2 else "")
+            ax.legend(title="Layers", loc='upper left')
+            ax.axhline(0, color='black', linewidth=0.5, linestyle='--')
+            ax.grid(True, alpha=0.3)
+        else:
+            ax.text(0.5, 0.5, "Insufficient Data", ha='center')
 
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, "fig4_grid_errorbars.png"), dpi=300)
+    plt.savefig(os.path.join(OUTPUT_DIR, "fig4_reification_stack.png"), dpi=300)
     plt.close()
 
 # ========================================================
@@ -4521,8 +4539,11 @@ def main():
     print("Generating Figure 2 Supplemental (Hidden Size)...")
     if not df_pre.empty: plot_fig2_supp(df_pre)
     
-    print("Generating Figure 4 (Error Bars)...")
-    plot_fig4_grid(df_pre, df_stage, df_perf)
+    print("Generating Figure 4A (Performance Stack)...")
+    plot_performance_stack(df_perf)
+
+    print("Generating Figure 4B (Reification Stack)...")
+    plot_reification_stack(df_pre, df_stage)
     
     print("Generating Tables...")
     generate_table_avg(df_pre, df_stage)
